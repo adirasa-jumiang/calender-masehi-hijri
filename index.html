@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalender Masehi & Hijriyah</title>
+<style>
+  /* ===== CSS DASAR ===== */
+  body { 
+    font-family: Arial, sans-serif; 
+    margin: 0; 
+    padding: 10px; 
+    background: #fafafa; 
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  .calendar { 
+    display: grid; 
+    grid-template-columns: repeat(7, 1fr); 
+    gap: 5px; 
+    margin-bottom: 20px; 
+  }
+  .header { 
+    grid-column: span 7; 
+    text-align: center; 
+    margin: 10px 0; 
+    font-size: 20px; 
+    font-weight: bold; 
+  }
+  .day-name { 
+    font-weight: bold; 
+    text-align: center; 
+    padding: 5px; 
+    background: #ddd; 
+    border-radius: 6px; 
+  }
+  .day { 
+    background: #fff; 
+    border-radius: 8px; 
+    padding: 5px; 
+    text-align: center; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+    cursor: pointer; 
+    transition: all 0.3s ease; 
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .day:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2); 
+  }
+  .masehi { 
+    font-size: 16px; 
+    font-weight: bold; 
+  }
+  .hijri { 
+    font-size: 12px; 
+    color: #555; 
+  }
+  .event { 
+    font-size: 11px; 
+    margin-top: 3px; 
+    color: #d9534f; 
+    font-style: italic; 
+  }
+  .nav { 
+    margin: 10px; 
+    text-align: center; 
+  }
+  button { 
+    padding: 5px 10px; 
+    border: none; 
+    background: #007BFF; 
+    color: #fff; 
+    border-radius: 5px; 
+    cursor: pointer; 
+    margin: 2px; 
+  }
+  button:hover { 
+    background: #0056b3; 
+  }
+  button.edit { 
+    background: #28a745; 
+  }
+  button.edit:hover { 
+    background: #1e7e34; 
+  }
+  button.delete { 
+    background: #dc3545; 
+  }
+  button.delete:hover { 
+    background: #c82333; 
+  }
+  button.download { 
+    background: #6f42c1; 
+  }
+  button.download:hover { 
+    background: #5a2d91; 
+  }
+  button.import { 
+    background: #fd7e14; 
+  }
+  button.import:hover { 
+    background: #e55a00; 
+  }
+  button.color-picker-btn { 
+    background: #17a2b8; 
+  }
+  button.color-picker-btn:hover { 
+    background: #138496; 
+  }
+  
+  /* ===== WARNA UNTUK TANGGAL DENGAN KETERANGAN ===== */
+  .day.has-keterangan { 
+    border: 2px solid #2196f3; 
+    position: relative;
+    overflow: hidden;
+  }
+  .day.has-keterangan::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--keterangan-color, linear-gradient(135deg, #e3f2fd, #bbdefb));
+    z-index: -1;
+    opacity: 0.8;
+  }
+
+  /* ===== WARNA KHUSUS HARI ===== */
+  .minggu { color: red; }
+  .jumat { color: green; }
+
+  /* ===== CONTAINER UNTUK KETERANGAN ===== */
+  .keterangan-container { 
+    margin-top: 30px; 
+    padding: 15px; 
+    background: #fff; 
+    border-radius: 8px; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+  }
+  .keterangan-title { 
+    font-size: 18px; 
+    font-weight: bold; 
+    margin-bottom: 10px; 
+    color: #333; 
+    border-bottom: 2px solid #007BFF; 
+    padding-bottom: 5px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+  }
+  .keterangan-actions-top {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .keterangan-item { 
+    margin: 8px 0; 
+    padding: 8px; 
+    background: #f8f9fa; 
+    border-radius: 5px; 
+    border-left: 3px solid #007BFF; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    transition: all 0.3s ease;
+  }
+  .keterangan-item:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+  }
+  .keterangan-date { 
+    font-weight: bold; 
+    color: #007BFF; 
+  }
+  .keterangan-text { 
+    color: #555; 
+    margin-top: 3px; 
+  }
+  .keterangan-actions { 
+    display: flex; 
+    gap: 5px; 
+  }
+
+  /* ===== COLOR PICKER ===== */
+  .color-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+  }
+  .color-picker-label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+  }
+  .color-presets {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .color-preset {
+    width: 25px;
+    height: 25px;
+    border-radius: 3px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .color-preset:hover {
+    transform: scale(1.1);
+    border-color: #333;
+  }
+  .color-preset.active {
+    border-color: #333;
+    transform: scale(1.1);
+  }
+
+  /* ===== FORM EDIT ===== */
+  .form-container { 
+    margin-top: 20px; 
+    padding: 15px; 
+    background: #fff; 
+    border-radius: 8px; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+    display: none; 
+  }
+  .form-group { 
+    margin-bottom: 10px; 
+  }
+  .form-group label { 
+    display: block; 
+    margin-bottom: 5px; 
+    font-weight: bold; 
+    color: #333; 
+  }
+  .form-group input, 
+  .form-group textarea,
+  .form-group select { 
+    width: 100%; 
+    padding: 8px; 
+    border: 1px solid #ddd; 
+    border-radius: 4px; 
+    box-sizing: border-box; 
+  }
+  .form-group textarea { 
+    height: 60px; 
+    resize: vertical; 
+  }
+  .form-buttons { 
+    display: flex; 
+    gap: 10px; 
+    margin-top: 15px; 
+  }
+
+  /* ===== NOTIFICATION ===== */
+  .notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px;
+    background: #28a745;
+    color: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    display: none;
+    z-index: 1000;
+  }
+
+  /* ===== MODE DETECTION ===== */
+  /* Default: Editor Mode (tampilkan semua) */
+  .editor-mode .keterangan-actions-top,
+  .editor-mode .keterangan-actions,
+  .editor-mode .form-container,
+  .editor-mode .color-picker-container {
+    display: flex;
+  }
+
+  /* View-Only Mode (sembunyikan editor) */
+  .view-only-mode .keterangan-actions-top,
+  .view-only-mode .keterangan-actions,
+  .view-only-mode .form-container,
+  .view-only-mode .color-picker-container {
+    display: none !important;
+  }
+  
+  .view-only-mode .keterangan-title {
+    justify-content: center !important;
+  }
+  
+  .view-only-mode .day {
+    cursor: default;
+  }
+  
+  .view-only-mode .day:hover {
+    transform: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
+  /* ===== RESPONSIF ===== */
+  @media (max-width: 600px) {
+    .masehi { font-size: 12px; }
+    .hijri { font-size: 10px; }
+    .event { font-size: 9px; }
+    .day-name { font-size: 12px; padding: 3px; }
+    .keterangan-title { font-size: 16px; flex-direction: column; align-items: flex-start; gap: 10px; }
+    .keterangan-actions-top { justify-content: flex-start; }
+    .keterangan-item { font-size: 14px; flex-direction: column; align-items: flex-start; }
+    .keterangan-actions { margin-top: 5px; align-self: flex-end; }
+    .color-picker-container { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== NOTIFICATION ===== -->
+<div class="notification" id="notification"></div>
+
+<!-- ===== NAVIGASI ===== -->
+<div class="nav">
+  <button onclick="prevMonth()">‹</button>
+  <span id="monthYear"></span>
+  <button onclick="nextMonth()">›</button>
+</div>
+
+<!-- ===== COLOR PICKER ===== -->
+<div class="color-picker-container">
+  <div class="color-picker-label">Pilih Warna Keterangan:</div>
+  <div class="color-presets" id="colorPresets">
+    <!-- Color presets akan di-generate oleh JavaScript -->
+  </div>
+  <button onclick="openColorPicker()" class="color-picker-btn">🎨 Custom Color</button>
+  <input type="color" id="customColorPicker" style="display: none;" onchange="applyCustomColor(this.value)">
+</div>
+
+<!-- ===== KALENDER ===== -->
+<div class="calendar" id="calendar"></div>
+
+<!-- ===== KETERANGAN CONTAINER ===== -->
+<div class="keterangan-container" id="keteranganContainer">
+  <div class="keterangan-title">
+    <span>Keterangan Bulan Ini</span>
+    <div class="keterangan-actions-top">
+      <button onclick="toggleForm()" class="edit">+ Tambah Keterangan</button>
+      <button onclick="downloadJSON()" class="download">📥 Download JSON</button>
+      <button onclick="importJSON()" class="import">📤 Import JSON</button>
+      <button onclick="clearAllData()" class="delete">🗑️ Hapus Semua</button>
+    </div>
+  </div>
+  <div id="keteranganContent"></div>
+</div>
+
+<!-- ===== FORM EDIT ===== -->
+<div class="form-container" id="formContainer">
+  <div class="keterangan-title">Form Keterangan</div>
+  <form id="keteranganForm">
+    <div class="form-group">
+      <label for="tanggal">Tanggal (YYYY-MM-DD):</label>
+      <input type="date" id="tanggal" required>
+    </div>
+    <div class="form-group">
+      <label for="keterangan">Keterangan:</label>
+      <textarea id="keterangan" placeholder="Masukkan keterangan event..." required></textarea>
+    </div>
+    <div class="form-group">
+      <label for="warnaKeterangan">Warna Keterangan:</label>
+      <select id="warnaKeterangan">
+        <option value="default">Default (Biru)</option>
+        <option value="merah">Merah</option>
+        <option value="hijau">Hijau</option>
+        <option value="kuning">Kuning</option>
+        <option value="ungu">Ungu</option>
+        <option value="orange">Orange</option>
+        <option value="pink">Pink</option>
+        <option value="custom">Custom Color</option>
+      </select>
+    </div>
+    <div class="form-buttons">
+      <button type="submit" class="edit">Simpan</button>
+      <button type="button" onclick="cancelEdit()">Batal</button>
+      <button type="button" onclick="resetForm()" style="background: #6c757d;">Reset</button>
+    </div>
+  </form>
+</div>
+
+<!-- ===== HIDDEN FILE INPUT ===== -->
+<input type="file" id="fileInput" accept=".json" style="display: none;">
+
+<script>
+// ===== KONFIGURASI =====
+const GITHUB_JSON_URL = 'https://raw.githubusercontent.com/USERNAME/REPO-NAME/main/keterangan.json';
+
+// ===== KONVERSI MASEHI KE HIJRIYAH =====
+function toHijri(day, month, year) {
+    var m = month + 1, y = year;
+    if(m < 3) { y -= 1; m += 12; }
+    var a = Math.floor(y/100);
+    var b = 2 - a + Math.floor(a/4);
+    var jd = Math.floor(365.25*(y+4716)) + Math.floor(30.6001*(m+1)) + day + b - 1524;
+    var islamic = jd - 1948440 + 10632;
+    var n = Math.floor((islamic-1)/10631);
+    islamic = islamic - 10631*n + 354;
+    var j = (Math.floor((10985-islamic)/5316))*(Math.floor((50*islamic)/17719))+(Math.floor(islamic/5670))*(Math.floor((43*islamic)/15238));
+    islamic = islamic - (Math.floor((30-j)/15))*(Math.floor((17719*j)/50))-(Math.floor(j/16))*(Math.floor((15238*j)/43))+29;
+    var m2 = Math.floor((24*islamic)/709);
+    var d2 = islamic - Math.floor((709*m2)/24);
+    var y2 = 30*n+j-30;
+    return d2 + "/" + m2 + "/" + y2;
+}
+
+// ===== DATA GLOBAL =====
+let current = new Date();
+let events = JSON.parse(localStorage.getItem("events") || "{}");
+let keteranganData = [];
+let editingIndex = -1;
+let currentColor = localStorage.getItem('keteranganColor') || '#e3f2fd';
+let isViewOnlyMode = false;
+
+// ===== DETEKSI MODE =====
+function detectMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isEmbedded = window.self !== window.top;
+    const hasEmbedParam = urlParams.get('mode') === 'embed';
+    const hasViewOnlyParam = urlParams.get('view') === 'true';
+    
+    isViewOnlyMode = isEmbedded || hasEmbedParam || hasViewOnlyParam;
+    
+    if (isViewOnlyMode) {
+        document.body.classList.add('view-only-mode');
+        document.body.classList.remove('editor-mode');
+        console.log('🎯 Mode: VIEW ONLY (Embed)');
+    } else {
+        document.body.classList.add('editor-mode');
+        document.body.classList.remove('view-only-mode');
+        console.log('🎨 Mode: EDITOR (Full Features)');
+    }
+    
+    return isViewOnlyMode;
+}
+
+// ===== COLOR PRESETS =====
+const colorPresets = [
+    { name: 'Biru', value: '#e3f2fd', gradient: 'linear-gradient(135deg, #e3f2fd, #bbdefb)' },
+    { name: 'Merah', value: '#ffebee', gradient: 'linear-gradient(135deg, #ffebee, #ffcdd2)' },
+    { name: 'Hijau', value: '#e8f5e8', gradient: 'linear-gradient(135deg, #e8f5e8, #c8e6c9)' },
+    { name: 'Kuning', value: '#fffde7', gradient: 'linear-gradient(135deg, #fffde7, #fff9c4)' },
+    { name: 'Ungu', value: '#f3e5f5', gradient: 'linear-gradient(135deg, #f3e5f5, #e1bee7)' },
+    { name: 'Orange', value: '#fff3e0', gradient: 'linear-gradient(135deg, #fff3e0, #ffe0b2)' },
+    { name: 'Pink', value: '#fce4ec', gradient: 'linear-gradient(135deg, #fce4ec, #f8bbd9)' }
+];
+
+// ===== INIT COLOR PICKER =====
+function initColorPicker() {
+    const container = document.getElementById('colorPresets');
+    colorPresets.forEach((preset, index) => {
+        const isActive = currentColor === preset.value ? 'active' : '';
+        const presetElement = document.createElement('div');
+        presetElement.className = `color-preset ${isActive}`;
+        presetElement.style.background = preset.gradient;
+        presetElement.title = preset.name;
+        presetElement.onclick = () => applyColor(preset.value, preset.gradient);
+        container.appendChild(presetElement);
+    });
+    
+    applyColor(currentColor);
+}
+
+// ===== APPLY COLOR =====
+function applyColor(colorValue, gradientValue = null) {
+    if (isViewOnlyMode) return; // Tidak bisa edit warna di mode view-only
+    
+    currentColor = colorValue;
+    localStorage.setItem('keteranganColor', colorValue);
+    
+    if (gradientValue) {
+        document.documentElement.style.setProperty('--keterangan-color', gradientValue);
+    } else {
+        document.documentElement.style.setProperty('--keterangan-color', colorValue);
+    }
+    
+    document.querySelectorAll('.color-preset').forEach((preset, index) => {
+        preset.classList.toggle('active', colorPresets[index].value === colorValue);
+    });
+    
+    renderCalendar(current);
+    showNotification(`Warna berhasil diubah!`);
+}
+
+// ===== OPEN CUSTOM COLOR PICKER =====
+function openColorPicker() {
+    if (isViewOnlyMode) return;
+    document.getElementById('customColorPicker').click();
+}
+
+// ===== APPLY CUSTOM COLOR =====
+function applyCustomColor(color) {
+    if (isViewOnlyMode) return;
+    applyColor(color);
+}
+
+// ===== GET COLOR GRADIENT =====
+function getColorGradient(colorName) {
+    const preset = colorPresets.find(p => p.name.toLowerCase() === colorName.toLowerCase());
+    return preset ? preset.gradient : 'linear-gradient(135deg, #e3f2fd, #bbdefb)';
+}
+
+// ===== NOTIFICATION SYSTEM =====
+function showNotification(message, isSuccess = true) {
+    if (isViewOnlyMode) return; // Tidak tampil notif di mode view-only
+    
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.style.background = isSuccess ? '#28a745' : '#dc3545';
+    notification.style.display = 'block';
+    
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 3000);
+}
+
+// ===== LOAD DATA BERDASARKAN MODE =====
+async function loadKeteranganData() {
+    try {
+        if (isViewOnlyMode) {
+            // MODE VIEW-ONLY: Load dari GitHub
+            console.log('📥 Loading data dari GitHub...');
+            const response = await fetch(GITHUB_JSON_URL);
+            if (response.ok) {
+                keteranganData = await response.json();
+                console.log('✅ Data berhasil dimuat dari GitHub');
+            } else {
+                throw new Error('Gagal memuat dari GitHub');
+            }
+        } else {
+            // MODE EDITOR: Load dari localStorage
+            console.log('💾 Loading data dari localStorage...');
+            const savedData = localStorage.getItem('keteranganData');
+            if (savedData) {
+                keteranganData = JSON.parse(savedData);
+                console.log('✅ Data berhasil dimuat dari localStorage');
+            } else {
+                // Fallback data
+                keteranganData = [
+                    { "tanggal": "2024-01-01", "keterangan": "Tahun Baru Masehi", "warna": "default" },
+                    { "tanggal": "2024-03-11", "keterangan": "Ramadhan dimulai", "warna": "hijau" },
+                    { "tanggal": "2024-04-10", "keterangan": "Hari Raya Idul Fitri", "warna": "hijau" }
+                ];
+                localStorage.setItem('keteranganData', JSON.stringify(keteranganData));
+                console.log('📝 Menggunakan data fallback');
+            }
+        }
+    } catch (error) {
+        console.error('❌ Gagal memuat data:', error);
+        // Fallback data
+        keteranganData = [
+            { "tanggal": "2024-01-01", "keterangan": "Tahun Baru Masehi", "warna": "default" },
+            { "tanggal": "2024-03-11", "keterangan": "Ramadhan dimulai", "warna": "hijau" },
+            { "tanggal": "2024-04-10", "keterangan": "Hari Raya Idul Fitri", "warna": "hijau" }
+        ];
+        showNotification('Gagal memuat data, menggunakan data default', false);
+    }
+}
+
+// ===== SAVE DATA (EDITOR MODE ONLY) =====
+function saveKeteranganData() {
+    if (isViewOnlyMode) {
+        showNotification('Tidak bisa menyimpan di mode view-only!', false);
+        return false;
+    }
+    
+    try {
+        localStorage.setItem('keteranganData', JSON.stringify(keteranganData));
+        console.log('💾 Data disimpan ke localStorage');
+        return true;
+    } catch (error) {
+        console.error('Gagal menyimpan data:', error);
+        return false;
+    }
+}
+
+// ===== DOWNLOAD JSON (EDITOR MODE ONLY) =====
+function downloadJSON() {
+    if (isViewOnlyMode) {
+        showNotification('Fitur download tidak tersedia di mode view-only!', false);
+        return;
+    }
+    
+    if (keteranganData.length === 0) {
+        showNotification('Tidak ada data untuk didownload!', false);
+        return;
+    }
+    
+    try {
+        const blob = new Blob([JSON.stringify(keteranganData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'keterangan.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showNotification('File JSON berhasil didownload!');
+    } catch (error) {
+        console.error('Gagal download JSON:', error);
+        showNotification('Gagal mendownload file JSON!', false);
+    }
+}
+
+// ===== IMPORT JSON (EDITOR MODE ONLY) =====
+function importJSON() {
+    if (isViewOnlyMode) {
+        showNotification('Fitur import tidak tersedia di mode view-only!', false);
+        return;
+    }
+    document.getElementById('fileInput').click();
+}
+
+// ===== HANDLE FILE IMPORT =====
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    if (isViewOnlyMode) return;
+    
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if (Array.isArray(importedData)) {
+                const isValid = importedData.every(item => 
+                    item.tanggal && item.keterangan && 
+                    typeof item.tanggal === 'string' && 
+                    typeof item.keterangan === 'string'
+                );
+                
+                if (isValid) {
+                    keteranganData = importedData;
+                    saveKeteranganData();
+                    renderCalendar(current);
+                    showNotification('Data JSON berhasil diimport!');
+                } else {
+                    showNotification('Format file JSON tidak valid!', false);
+                }
+            } else {
+                showNotification('File harus berisi array data!', false);
+            }
+        } catch (error) {
+            console.error('Gagal import JSON:', error);
+            showNotification('Gagal membaca file JSON!', false);
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+});
+
+// ===== CLEAR ALL DATA (EDITOR MODE ONLY) =====
+function clearAllData() {
+    if (isViewOnlyMode) {
+        showNotification('Tidak bisa menghapus data di mode view-only!', false);
+        return;
+    }
+    
+    if (confirm('Apakah Anda yakin ingin menghapus SEMUA data keterangan? Tindakan ini tidak dapat dibatalkan!')) {
+        keteranganData = [];
+        saveKeteranganData();
+        renderCalendar(current);
+        showNotification('Semua data berhasil dihapus!');
+    }
+}
+
+// ===== FORM FUNCTIONS (EDITOR MODE ONLY) =====
+function toggleForm() {
+    if (isViewOnlyMode) return;
+    
+    const formContainer = document.getElementById('formContainer');
+    formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
+    if (formContainer.style.display === 'block') {
+        resetForm();
+    }
+}
+
+function resetForm() {
+    if (isViewOnlyMode) return;
+    
+    document.getElementById('tanggal').value = '';
+    document.getElementById('keterangan').value = '';
+    document.getElementById('warnaKeterangan').value = 'default';
+    editingIndex = -1;
+}
+
+function cancelEdit() {
+    if (isViewOnlyMode) return;
+    
+    toggleForm();
+    resetForm();
+}
+
+function editKeterangan(index) {
+    if (isViewOnlyMode) return;
+    
+    const item = keteranganData[index];
+    document.getElementById('tanggal').value = item.tanggal;
+    document.getElementById('keterangan').value = item.keterangan;
+    document.getElementById('warnaKeterangan').value = item.warna || 'default';
+    editingIndex = index;
+    
+    const formContainer = document.getElementById('formContainer');
+    formContainer.style.display = 'block';
+}
+
+function deleteKeterangan(index) {
+    if (isViewOnlyMode) return;
+    
+    if (confirm('Apakah Anda yakin ingin menghapus keterangan ini?')) {
+        keteranganData.splice(index, 1);
+        if (saveKeteranganData()) {
+            renderCalendar(current);
+            showNotification('Keterangan berhasil dihapus!');
+        } else {
+            showNotification('Gagal menghapus keterangan!', false);
+        }
+    }
+}
+
+// ===== FORM SUBMIT HANDLER =====
+document.getElementById('keteranganForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (isViewOnlyMode) {
+        showNotification('Tidak bisa menambah data di mode view-only!', false);
+        return;
+    }
+    
+    const tanggal = document.getElementById('tanggal').value;
+    const keterangan = document.getElementById('keterangan').value;
+    const warna = document.getElementById('warnaKeterangan').value;
+    
+    if (!tanggal || !keterangan) {
+        showNotification('Mohon lengkapi semua field!', false);
+        return;
+    }
+    
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(tanggal)) {
+        showNotification('Format tanggal harus YYYY-MM-DD!', false);
+        return;
+    }
+    
+    const newItem = { tanggal, keterangan, warna };
+    
+    if (editingIndex >= 0) {
+        keteranganData[editingIndex] = newItem;
+    } else {
+        keteranganData.push(newItem);
+    }
+    
+    if (saveKeteranganData()) {
+        toggleForm();
+        resetForm();
+        renderCalendar(current);
+        showNotification('Keterangan berhasil disimpan!');
+    } else {
+        showNotification('Gagal menyimpan keterangan!', false);
+    }
+});
+
+// ===== CEK APAKAH TANGGAL ADA KETERANGAN =====
+function hasKeterangan(year, month, day) {
+    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return keteranganData.some(item => item.tanggal === dateString);
+}
+
+// ===== GET KETERANGAN COLOR =====
+function getKeteranganColor(year, month, day) {
+    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const item = keteranganData.find(item => item.tanggal === dateString);
+    
+    if (item && item.warna && item.warna !== 'default') {
+        return getColorGradient(item.warna);
+    }
+    
+    return currentColor;
+}
+
+// ===== RENDER KALENDER =====
+function renderCalendar(date) {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    document.getElementById("monthYear").innerText =
+      date.toLocaleString("id-ID", { month: "long", year: "numeric" });
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    
+    let html = "";
+
+    // Nama hari
+    const days = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+    days.forEach((d,i)=>{
+        let cls = "";
+        if(i===0) cls="minggu";
+        if(i===5) cls="jumat";
+        html += `<div class="day-name ${cls}">${d}</div>`;
+    });
+
+    // Spasi sebelum tanggal 1
+    for(let i=0;i<firstDay;i++) html += "<div></div>";
+    
+    // Tanggal
+    for(let d=1; d<=daysInMonth; d++){
+        let hijri = toHijri(d, month, year);
+        let weekday = new Date(year, month, d).getDay();
+        let cls = "";
+        if(weekday===0) cls="minggu";
+        if(weekday===5) cls="jumat";
+
+        let key = `${year}-${month+1}-${d}`;
+        let eventText = events[key] ? `<div class="event">${events[key]}</div>` : "";
+
+        const hasKeteranganClass = hasKeterangan(year, month, d) ? 'has-keterangan' : '';
+        const keteranganColor = getKeteranganColor(year, month, d);
+
+        const onClick = isViewOnlyMode ? '' : `onclick="addEvent('${key}')"`;
+
+        html += `<div class="day ${hasKeteranganClass}" 
+                     ${onClick}
+                     style="${hasKeteranganClass ? `--keterangan-color: ${keteranganColor}` : ''}">
+                   <div class="masehi ${cls}">${d}</div>
+                   <div class="hijri">${hijri}</div>
+                   ${eventText}
+                 </div>`;
+    }
+    document.getElementById("calendar").innerHTML = html;
+    
+    renderKeteranganBulanIni(year, month + 1);
+}
+
+// ===== RENDER KETERANGAN =====
+function renderKeteranganBulanIni(year, month) {
+    const container = document.getElementById('keteranganContent');
+    let html = '';
+    
+    const bulanIni = keteranganData.filter(item => {
+        const [tahun, bulan, tanggal] = item.tanggal.split('-').map(Number);
+        return tahun === year && bulan === month;
+    });
+    
+    if (bulanIni.length === 0) {
+        html = '<div class="keterangan-item">Tidak ada keterangan khusus untuk bulan ini.</div>';
+    } else {
+        bulanIni.forEach((item, index) => {
+            const [tahun, bulan, tanggal] = item.tanggal.split('-').map(Number);
+            const dateObj = new Date(tahun, bulan - 1, tanggal);
+            const hari = dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
+            const warna = item.warna || 'default';
+            const warnaStyle = warna !== 'default' ? 
+                `style="border-left-color: ${colorPresets.find(p => p.name.toLowerCase() === warna)?.value || '#007BFF'};"` : '';
+            
+            const actions = isViewOnlyMode ? '' : `
+                <div class="keterangan-actions">
+                    <button onclick="editKeterangan(${index})" class="edit">Edit</button>
+                    <button onclick="deleteKeterangan(${index})" class="delete">Hapus</button>
+                </div>
+            `;
+            
+            html += `
+                <div class="keterangan-item" ${warnaStyle}>
+                    <div>
+                        <div class="keterangan-date">${tanggal} ${dateObj.toLocaleDateString('id-ID', { month: 'long' })} ${tahun} (${hari})</div>
+                        <div class="keterangan-text">${item.keterangan}</div>
+                        ${!isViewOnlyMode ? `<small style="color: #888;">Warna: ${warna}</small>` : ''}
+                    </div>
+                    ${actions}
+                </div>
+            `;
+        });
+    }
+    
+    container.innerHTML = html;
+}
+
+// ===== NAVIGASI BULAN =====
+function prevMonth() {
+  current.setMonth(current.getMonth()-1);
+  renderCalendar(current);
+}
+function nextMonth() {
+  current.setMonth(current.getMonth()+1);
+  renderCalendar(current);
+}
+
+// ===== TAMBAH/EDIT KETERANGAN (EDITOR MODE ONLY) =====
+function addEvent(key) {
+    if (isViewOnlyMode) return;
+    
+    let currentText = events[key] || "";
+    let input = prompt("Masukkan keterangan (kosongkan untuk hapus):", currentText);
+    if(input === null) return;
+    if(input.trim() === "") {
+        delete events[key];
+    } else {
+        events[key] = input.trim();
+    }
+    localStorage.setItem("events", JSON.stringify(events));
+    renderCalendar(current);
+}
+
+// ===== INISIALISASI =====
+async function init() {
+    detectMode();
+    await loadKeteranganData();
+    
+    if (!isViewOnlyMode) {
+        initColorPicker();
+    }
+    
+    renderCalendar(current);
+    
+    // Tampilkan info mode
+    if (isViewOnlyMode) {
+        console.log('🚀 Kalender siap dalam mode VIEW-ONLY');
+        console.log('📊 Jumlah keterangan:', keteranganData.length);
+    } else {
+        console.log('🚀 Kalender siap dalam mode EDITOR');
+        console.log('📊 Jumlah keterangan:', keteranganData.length);
+    }
+}
+
+// ===== START =====
+init();
+</script>
+</body>
+</html>
